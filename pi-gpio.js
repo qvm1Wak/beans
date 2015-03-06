@@ -4,7 +4,7 @@ var fs = require("fs"),
 	exec = require("child_process").exec;
 
 var gpioAdmin = "gpio-admin",
-	sysFsPath = "/sys/devices/soc/20200000.gpio/gpio";
+	sysFsPath = "/sys/devices/soc/3f200000.gpio/gpio";
 
 var rev = fs.readFileSync("/proc/cpuinfo").toString().split("\n").filter(function(line) {
 	return line.indexOf("Revision") == 0;
