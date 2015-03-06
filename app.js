@@ -1,4 +1,4 @@
-var gpio = require("pi-gpio");
+var gpio = require('./pi-gpio');
 
 
 var redOn = 1;
@@ -7,19 +7,19 @@ var blueOn = 0;
 var photoPin = 12;
 
 var start = function () {
-  gpio.open(11, 'out', function(err) {     // Open pin 16 for output 
-    gpio.write(11, redOn, function() {          // Set pin 16 high (1) 
-      gpio.close(11);                     // Close pin 16 
+  gpio.open(11, 'out', function(err) {
+    gpio.write(11, redOn, function() {
+      gpio.close(11);
     });
   });
-  gpio.open(13, 'out', function(err) {     // Open pin 16 for output 
-    gpio.write(13, greenOn, function() {          // Set pin 16 high (1) 
-      gpio.close(13);                     // Close pin 16 
+  gpio.open(13, 'out', function(err) {
+    gpio.write(13, greenOn, function() {
+      gpio.close(13);
     });
   });
-  gpio.open(15, 'out', function(err) {     // Open pin 16 for output 
-    gpio.write(15, blueOn, function() {          // Set pin 16 high (1) 
-      gpio.close(15);                     // Close pin 16 
+  gpio.open(15, 'out', function(err) {
+    gpio.write(15, blueOn, function() {
+      gpio.close(15);
     });
   });
 
