@@ -1,0 +1,5 @@
+{
+  "devDependencies": {
+    "pi-gpio": "0.0.6"
+  }
+}
