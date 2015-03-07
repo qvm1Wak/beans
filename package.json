@@ -5,6 +5,8 @@
   "dependencies": {},
   "devDependencies": {
       "pi-gpio": "0.0.6",
-      "colors": "1.0.3"
+      "colors": "1.0.3",
+      "underscore": '"1.8.2",
+      "omx-manager": "0.0.3"
   }
 }
