@@ -1,5 +1,10 @@
 {
+  "author": "",
+  "name": "asd",
+  "version": "0.0.0",
+  "dependencies": {},
   "devDependencies": {
-    "pi-gpio": "0.0.6"
+      "pi-gpio": "0.0.6",
+      "colors": "1.0.3"
   }
 }

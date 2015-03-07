@@ -1,5 +1,5 @@
 var gpio = require('./pi-gpio');
-
+var colors = require('colors');
 
 var redOn = 0;
 var greenOn = 0;
@@ -13,29 +13,18 @@ var photoPin = 12;
 var CAPACITOR_POLL_DELAY = 10;
 
 var start = function () {
-  gpio.open(greenPin, 'out', function(err) {
-    gpio.write(greenPin, greenOn, function() {
-      // gpio.close(greenPin);
-    });
-  });
-  gpio.open(yellowPin, 'out', function(err) {
-    gpio.write(yellowPin, blueOn, function() {
-      // gpio.close(yellowPin);
-    });
-  });
-
   var isTiming = {};
   var pinTimer = function (pin, cb) {
     //process.stdout.write('p');
     if (isTiming[pin+'']) return;
     //process.stdout.write('1');
-    isTiming[pin] = true;
+    isTiming[pin+''] = true;
     var counter = 0;
     var readPoller = function (pin, cb) {
       //process.stdout.write('4');
       gpio.read(pin, function (err, value) {
         //process.stdout.write('5');
-        if (err) { isTiming[pin] = false; console.log(err); }
+        if (err) { isTiming[pin+''] = false; console.log(err); }
         if (value === 1) { isTiming[pin+''] = false; return cb(counter); }
         if (counter > 80) { isTiming[pin+''] = false; return cb(Infinity); }
         counter++;
@@ -63,18 +52,14 @@ var start = function () {
     });
   };
 
-  var isColorTiming = {};
   var colorTimer = function (pin, cb) {
-    if (isColorTiming[pin + '']) return;
-    isColorTiming[pin + ''] = true;
     gpio.open(pin, 'out', function(err) {
-      if (err) { isColorTiming = false; console.log(err); }
+      if (err) { console.log(err); }
       gpio.write(pin, 1, function(err) {
-        if (err) { isColorTiming = false; console.log(err); }
+        if (err) { console.log(err); }
         pinTimer(photoPin, function (count) {
           gpio.close(pin, function () {
             cb(count);
-            isColorTiming[pin + ''] = false;
           });
         });
       });
@@ -88,38 +73,65 @@ var start = function () {
     colorTimer(redPin, function (redCount) {
       colorTimer(greenPin, function (greenCount) {
         colorTimer(yellowPin, function (yellowCount) {
-          cb({r: redCount, g: greenCount, y: yellowCount});
           isRGYTiming = false;
+          cb({r: redCount, g: greenCount, y: yellowCount});
         });
       });
     });
   };
 
+  var btw = function (val, a, b) {
+    return val >= a && val <= b;
+  };
+
+  var checkColors = function (cb) {
+    isRGY(function (val) {
+      var isNone = btw(val.r, 6, 10) && btw(val.g, 6, 10) && btw(val.y, 6, 10);
+      var isRed = val.r < 15 && val.g === Infinity && val.y < 15;
+      var isGreen = btw(val.r, 14, 17) && val.g === Infinity && btw(val.y, 13, 15);
+      var isYellow = btw(val.r, 5, 15) && btw(val.g, 17, 80) && btw(val.y, 5, 15);
+      var isBlue = btw(val.r, 10, 17) && val.g === Infinity && btw(val.y, 11, 17);
+      cb({rgy: val, isNone: isNone, isRed: isRed, isGreen: isGreen, isYellow: isYellow, isBlue: isBlue});
+      checkColors(cb);
+    });
+  };
+  
   gpio.open(photoPin, 'in', function () {
-    setInterval(function () {
-     isRGY(function (val) {
-       var isRed = val.r < Infinity && val.g === Infinity && val.y < Infinity && val.y > 5;
-       var isGreen = false;
-       var isYellow = val.r < Infinity && val.g === Infinity && val.y < Infinity && val.y < 5;
-       var isBlue = val.r === Infinity && val.g === Infinity && val.y < Infinity;
-       process.stdout.write(isRed ? 'R' : '.');
-       process.stdout.write(isGreen ? 'G' : '.');
-       process.stdout.write(isYellow ? 'Y' : '.');
-       process.stdout.write(isBlue ? 'B' : '.');
-       console.log(val.r, val.g, val.y);
-     });
-    },500);
+    checkColors(function (val) {
+      if (val.isNone) {}
+      var colors = [];
+      if (val.isRed) { colors.push('red'.red); }
+      if (val.isGreen) { colors.push('green'.green); }
+      if (val.isYellow) { colors.push('yellow'.yellow); }
+      if (val.isBlue) { colors.push('blue'.blue); }
+      var detected = colors.join(', ');
+      if (val.isNone) {
+        process.stdout.write('.');        
+      } else if (colors.length) {
+        process.stdout.write(' (' + val.rgy.r + ' ' + val.rgy.g  + ' ' + val.rgy.y + ') ');
+        process.stdout.write(detected);
+      } else {
+        process.stdout.write(val.isRed ? 'R' : '.');
+        process.stdout.write(val.isGreen ? 'G' : '.');
+        process.stdout.write(val.isYellow ? 'Y' : '.');
+        process.stdout.write(val.isBlue ? 'B' : '.');
+        process.stdout.write(' (' + val.rgy.r + ' ' + val.rgy.g  + ' ' + val.rgy.y + ')');
+      }
+    });
   });
 
   console.log('started');
 };
 
-gpio.close(redPin, function () {
-  gpio.close(greenPin, function () {
-    gpio.close(yellowPin, function () {
-      gpio.close(12, function () {
-        start();
-      });
-    });
-  });
+start();
+
+// clean up GPIO before exiting
+process.stdin.resume();
+
+process.on('SIGINT', function () {
+  gpio.close(redPin);
+  gpio.close(greenPin);
+  gpio.close(yellowPin);
+  gpio.close(12);
+  process.exit(2);
 });
