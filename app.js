@@ -5,6 +5,15 @@ var fs = require('fs');
 fs.existsSync = require('path').existsSync;
 var omx = require('omx-manager');
 var spawn = require('child_process').spawn;
+var path = require('path');
+var program = require('commander');
+
+program.version('0.0.1')
+  .option('-d, --debug [debug]')
+  .option('-c, --calibrate [debug]')
+  .parse(process.argv);
+omx.enableHangingHandler();
+
 
 var redOn = 0;
 var greenOn = 0;
@@ -26,7 +35,7 @@ var pinTimer = function (pin, cb) {
     gpio.read(pin, function (err, value) {
       if (err) { isTiming[pin+''] = false; process.stdout.write('X') }
       if (value === 1) { isTiming[pin+''] = false; return cb(counter); }
-      if (counter > 80) { isTiming[pin+''] = false; return cb(Infinity); }
+      if (counter > 150) { isTiming[pin+''] = false; return cb(Infinity); }
       counter++;
       setTimeout(function () {
         return readPoller(pin, cb);
@@ -68,12 +77,12 @@ var isRGY = function (cb) {
   if (isRGYTiming) return;
   isRGYTiming = true;
   colorTimer(redPin, function (redCount) {
-    colorTimer(greenPin, function (greenCount) {
+//    colorTimer(greenPin, function (greenCount) {
       colorTimer(yellowPin, function (yellowCount) {
         isRGYTiming = false;
-        cb({r: redCount, g: greenCount, y: yellowCount});
+        cb({r: redCount, g: 0/*greenCount*/, y: yellowCount});
       });
-    });
+//    });
   });
 };
 
@@ -91,18 +100,20 @@ var checkColors = function (cb) {
       rgy: val,
       rgyString: '(' + val.r + ' ' + val.g  + ' ' + val.y + ')',
       colors: {},
-      isNone: btw(val.r, 6, 10) && btw(val.g, 6, 10) && btw(val.y, 6, 10),
-      isRed: val.r < 15 && val.g > 70 && val.y < 15,
-      isGreen: btw(val.r, 14, 17) && val.g === Infinity && btw(val.y, 13, 15),
-      isYellow: btw(val.r, 5, 15) && btw(val.g, 17, 80) && btw(val.y, 5, 15),
-      isOrange: btw(val.r, 6, 11) && btw(val.g, 15, 60) && btw(val.y, 5, 10),
-      isBlue: btw(val.r, 10, 17) && val.g === Infinity && btw(val.y, 11, 17)
+      isNone: btw(val.r, 6, 10) && btw(val.y, 6, 10),
+      //isRed: btw(val.r, 12, 16) && val.g > 100 && btw(val.y, 12, 13),
+      //isOrange: btw(val.r, 12, 14) && val.g > 100 && btw(val.y, 12, 13),
+      isYellow: btw(val.r, 10, 12) && btw(val.y, 10, 16),
+      //isYellow2: btw(val.r, 5, 15) && btw(val.g, 17, 80) && btw(val.y, 5, 15),
+      isPurple: btw(val.r, 20, 24) && btw(val.y, 25, 32),
+      isGreen: btw(val.r, 12, 15) && btw(val.y, 18, 22)
     };
     if (output.isRed) { output.colors.red = 1; }
-    if (output.isGreen) { output.colors.green = 1; }
-    if (output.isYellow) { output.colors.yellow = 1; }
     if (output.isOrange) { output.colors.orange = 1; }
-    if (output.isBlue) { output.colors.blue = 1; }
+    if (output.isYellow) { output.colors.yellow = 1; }
+    if (output.isYellow2) { output.colors.yellow2 = 1; }
+    if (output.isPurple) { output.colors.purple = 1; }
+    if (output.isGreen) { output.colors.green = 1; }
 
     cb(output);
     checkColors(cb);
@@ -125,44 +136,80 @@ var handleStreaks = function (val) {
   } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isRed'), function (a) { return !!a; }).length > 2) {
     isColorStreak = true;
     return 'red';
-  } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isGreen'), function (a) { return !!a; }).length > 2) {
-    isColorStreak = true;
-    return 'green';
-  } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isYellow'), function (a) { return !!a; }).length > 2) {
-    isColorStreak = true;
-    return 'yellow';
   } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isOrange'), function (a) { return !!a; }).length > 2) {
     isColorStreak = true;
     return 'orange';
-  } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isBlue'), function (a) { return !!a; }).length > 2) {
+  } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isYellow'), function (a) { return !!a; }).length > 2) {
     isColorStreak = true;
-    return 'blue';
+    return 'yellow';
+  } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isYellow2'), function (a) { return !!a; }).length > 2) {
+    isColorStreak = true;
+    return 'yellow2';
+  } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isPurple'), function (a) { return !!a; }).length > 2) {
+    isColorStreak = true;
+    return 'purple';
+  } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isGreen'), function (a) { return !!a; }).length > 2) {
+    isColorStreak = true;
+    return 'green';
   }
 };
 
-var playSong = function () {
+var currentSong = null;
+var playSong = function (song) {
+  if (!song) return;
 
+  var songs = {
+    'red'     : 'AsGalinhas.mp3',
+    'orange'  : 'BarcoNegro_comp.mp3',
+    'yellow'  : 'FadoTropical_comp.mp3',
+    'yellow2' : 'Ruca.mp3',
+    'purple'  : 'MusicaDasCores_short.mp3',
+    'green'   : 'CarlosdoCarmo_comp.mp3',
+    'none'    : null
+  };
+  if ((!song || !songs[song]) && currentSong) {
+    omx.stop();
+    console.log('pausing');
+    currentSong = null;
+  } else if (!!songs[song] && !currentSong && !program.calibrate) {
+    omx.stop();
+    omx.play('./mp3/' + songs[song]);
+    if (program.debug) {
+      setTimeout(function () {
+        omx.stop();
+      }, 2000);
+    }
+    console.log('playing ' + songs[song]);
+    currentSong = songs[song];
+  }
 };
-omx.enableHangingHandler();
-//spawn('amixer', ['set', 'PCM', '--', '-0']);
-//omx.play('./mp3/BarcoNegro_comp.mp3', {'--vol': 0});
+
+// TODO
+// spawn('amixer', ['set', 'PCM', '--', '-0']);
 
 checkColors(function (val) {
   var colors = Object.keys(val.colors);
   var detected = colors.join(', ');
-  // if (val.isNone) {
-  //   process.stdout.write('.');
-  // } else if (colors.length) {
-  //   process.stdout.write(' ' + val.rgyString + ' ');
-  //   process.stdout.write(detected);
-  // } else {
-  //   process.stdout.write(' ' + val.rgyString + ')');
-  // }
-  
+  if (program.debug) {
+    if (val.isNone) {
+      process.stdout.write('.');
+    } else if (colors.length) {
+      process.stdout.write(' ' + val.rgyString + ' ');
+      process.stdout.write(detected);
+    } else {
+      process.stdout.write(' ' + val.rgyString + ')');
+    }
+  }
+
+  if (program.calibrate) {
+    console.log(val.rgyString + ' ' + detected);
+  }
+
   // detect streaks
   var s = handleStreaks(val);
-  process.stdout.write(s ? s : '');
-
+  if (program.debug) {
+    process.stdout.write(s ? s : '');
+  }
   playSong(s);
 });
 
