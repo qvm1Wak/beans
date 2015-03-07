@@ -1,5 +1,10 @@
 var gpio = require('./pi-gpio');
 var colors = require('colors');
+var _ = require('underscore');
+var fs = require('fs');
+fs.existsSync = require('path').existsSync;
+var omx = require('omx-manager');
+var spawn = require('child_process').spawn;
 
 var redOn = 0;
 var greenOn = 0;
@@ -84,39 +89,81 @@ var checkColors = function (cb) {
      */
     var output = {
       rgy: val,
+      rgyString: '(' + val.r + ' ' + val.g  + ' ' + val.y + ')',
+      colors: {},
       isNone: btw(val.r, 6, 10) && btw(val.g, 6, 10) && btw(val.y, 6, 10),
-      isRed: val.r < 15 && val.g === Infinity && val.y < 15,
+      isRed: val.r < 15 && val.g > 70 && val.y < 15,
       isGreen: btw(val.r, 14, 17) && val.g === Infinity && btw(val.y, 13, 15),
       isYellow: btw(val.r, 5, 15) && btw(val.g, 17, 80) && btw(val.y, 5, 15),
       isOrange: btw(val.r, 6, 11) && btw(val.g, 15, 60) && btw(val.y, 5, 10),
       isBlue: btw(val.r, 10, 17) && val.g === Infinity && btw(val.y, 11, 17)
     };
+    if (output.isRed) { output.colors.red = 1; }
+    if (output.isGreen) { output.colors.green = 1; }
+    if (output.isYellow) { output.colors.yellow = 1; }
+    if (output.isOrange) { output.colors.orange = 1; }
+    if (output.isBlue) { output.colors.blue = 1; }
+
     cb(output);
     checkColors(cb);
   });
 };
 
-checkColors(function (val) {
-  if (val.isNone) {}
-  var colors = [];
-  if (val.isRed) { colors.push('red'.red); }
-  if (val.isGreen) { colors.push('green'.green); }
-  if (val.isYellow) { colors.push('yellow'.yellow); }
-  if (val.isOrange) { colors.push('orange'.orange); }
-  if (val.isBlue) { colors.push('blue'.blue); }
-  var detected = colors.join(', ');
-  if (val.isNone) {
-    process.stdout.write('.');
-  } else if (colors.length) {
-    process.stdout.write(' (' + val.rgy.r + ' ' + val.rgy.g  + ' ' + val.rgy.y + ') ');
-    process.stdout.write(detected);
-  } else {
-    process.stdout.write(val.isRed ? 'R' : '.');
-    process.stdout.write(val.isGreen ? 'G' : '.');
-    process.stdout.write(val.isYellow ? 'Y' : '.');
-    process.stdout.write(val.isBlue ? 'B' : '.');
-    process.stdout.write(' (' + val.rgy.r + ' ' + val.rgy.g  + ' ' + val.rgy.y + ')');
+var streaks = [{}, {}, {}];
+var isColorStreak = false;
+var handleStreaks = function (val) {
+  if (!val) return;
+  var colors = Object.keys(val.colors);
+  
+  // continuous queue
+  streaks.push(val);
+  streaks.shift();
+
+  if (isColorStreak && streaks[0].isNone && streaks[1].isNone && streaks[2].isNone) {
+    isColorStreak = false;
+    return 'none';
+  } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isRed'), function (a) { return !!a; }).length > 2) {
+    isColorStreak = true;
+    return 'red';
+  } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isGreen'), function (a) { return !!a; }).length > 2) {
+    isColorStreak = true;
+    return 'green';
+  } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isYellow'), function (a) { return !!a; }).length > 2) {
+    isColorStreak = true;
+    return 'yellow';
+  } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isOrange'), function (a) { return !!a; }).length > 2) {
+    isColorStreak = true;
+    return 'orange';
+  } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isBlue'), function (a) { return !!a; }).length > 2) {
+    isColorStreak = true;
+    return 'blue';
   }
+};
+
+var playSong = function () {
+
+};
+omx.enableHangingHandler();
+//spawn('amixer', ['set', 'PCM', '--', '-0']);
+//omx.play('./mp3/BarcoNegro_comp.mp3', {'--vol': 0});
+
+checkColors(function (val) {
+  var colors = Object.keys(val.colors);
+  var detected = colors.join(', ');
+  // if (val.isNone) {
+  //   process.stdout.write('.');
+  // } else if (colors.length) {
+  //   process.stdout.write(' ' + val.rgyString + ' ');
+  //   process.stdout.write(detected);
+  // } else {
+  //   process.stdout.write(' ' + val.rgyString + ')');
+  // }
+  
+  // detect streaks
+  var s = handleStreaks(val);
+  process.stdout.write(s ? s : '');
+
+  playSong(s);
 });
 
 gpio.open(photoPin, 'in', function () {
