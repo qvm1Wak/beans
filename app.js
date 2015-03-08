@@ -77,12 +77,12 @@ var isRGY = function (cb) {
   if (isRGYTiming) return;
   isRGYTiming = true;
   colorTimer(redPin, function (redCount) {
-//    colorTimer(greenPin, function (greenCount) {
+    colorTimer(greenPin, function (greenCount) {
       colorTimer(yellowPin, function (yellowCount) {
         isRGYTiming = false;
-        cb({r: redCount, g: 0/*greenCount*/, y: yellowCount});
+        cb({r: redCount, g: greenCount, y: yellowCount});
       });
-//    });
+    });
   });
 };
 
@@ -101,12 +101,14 @@ var checkColors = function (cb) {
       rgyString: '(' + val.r + ' ' + val.g  + ' ' + val.y + ')',
       colors: {},
       isNone: btw(val.r, 6, 10) && btw(val.y, 6, 10),
-      //isRed: btw(val.r, 12, 16) && val.g > 100 && btw(val.y, 12, 13),
-      //isOrange: btw(val.r, 12, 14) && val.g > 100 && btw(val.y, 12, 13),
-      isYellow: btw(val.r, 10, 12) && btw(val.y, 10, 16),
-      //isYellow2: btw(val.r, 5, 15) && btw(val.g, 17, 80) && btw(val.y, 5, 15),
-      isPurple: btw(val.r, 20, 24) && btw(val.y, 25, 32),
-      isGreen: btw(val.r, 12, 15) && btw(val.y, 18, 22)
+      isRed: btw(val.r, 18, 26) && btw(val.g, 24, 39) && btw(val.y, 20, 26),
+      isOrange: btw(val.r, 12, 17) && btw(val.g, 19, 25) && btw(val.y, 15, 18),
+      isYellow: btw(val.r, 10, 16) && btw(val.g, 17, 20) && btw(val.y, 11, 16),
+      //isYellow2: btw(val.r, 5, 15) && btw(val.g, 17, 20) && btw(val.y, 5, 14),
+      isPurple: btw(val.r, 32, 42) && btw(val.g, 35, 49) && btw(val.y, 17, 22),
+      isGreen: btw(val.r, 19, 21) && btw(val.g, 21, 23) && btw(val.y, 12, 15),
+      isGreen2: btw(val.r, 29, 31) && btw(val.g, 34, 39) && btw(val.y, 18, 20)
+
     };
     if (output.isRed) { output.colors.red = 1; }
     if (output.isOrange) { output.colors.orange = 1; }
@@ -114,6 +116,7 @@ var checkColors = function (cb) {
     if (output.isYellow2) { output.colors.yellow2 = 1; }
     if (output.isPurple) { output.colors.purple = 1; }
     if (output.isGreen) { output.colors.green = 1; }
+    if (output.isGreen2) { output.colors.green2 = 1; }
 
     cb(output);
     checkColors(cb);
@@ -151,6 +154,9 @@ var handleStreaks = function (val) {
   } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isGreen'), function (a) { return !!a; }).length > 2) {
     isColorStreak = true;
     return 'green';
+  } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isGreen'), function (a) { return !!a; }).length > 2) {
+    isColorStreak = true;
+    return 'green2';
   }
 };
 
@@ -165,6 +171,7 @@ var playSong = function (song) {
     'yellow2' : 'Ruca.mp3',
     'purple'  : 'MusicaDasCores_short.mp3',
     'green'   : 'CarlosdoCarmo_comp.mp3',
+    'green2'   : 'CarlosdoCarmo_comp.mp3',
     'none'    : null
   };
   if ((!song || !songs[song]) && currentSong) {
