@@ -2,61 +2,70 @@ var gpio = require('./pi-gpio');
 var colors = require('colors');
 var _ = require('underscore');
 var fs = require('fs');
-fs.existsSync = require('path').existsSync;
 var omx = require('omx-manager');
 var spawn = require('child_process').spawn;
 var path = require('path');
 var program = require('commander');
 
+// the program accepts a few command line arguments
+// TODO -h for help
 program.version('0.0.1')
   .option('-d, --debug [debug]')
   .option('-c, --calibrate [debug]')
   .parse(process.argv);
 omx.enableHangingHandler();
 
+fs.existsSync = require('path').existsSync;
 
+// pin states
 var redOn = 0;
 var greenOn = 0;
 var blueOn = 0;
+
+// pin numbers
 var redPin = 11;
 var greenPin = 13;
 var bluePin = 15;
-
 var photoPin = 12;
 
 var CAPACITOR_POLL_DELAY = 10;
 
-var isTiming = {};
-var pinTimer = function (pin, cb) {
-  if (isTiming[pin+'']) return;
-  isTiming[pin+''] = true;
-  var counter = 0;
-  var readPoller = function (pin, cb) {
-    gpio.read(pin, function (err, value) {
-      if (err) { isTiming[pin+''] = false; process.stdout.write('X') }
-      if (value === 1) { isTiming[pin+''] = false; return cb(counter); }
-      if (counter > 150) { isTiming[pin+''] = false; return cb(Infinity); }
-      counter++;
-      setTimeout(function () {
-        return readPoller(pin, cb);
-      }, CAPACITOR_POLL_DELAY);
+var pinTimer = (function () {
+  /*
+   
+   */
+  var isTiming = {};
+  return function (pin, cb) {
+    if (isTiming[pin+'']) return;
+    isTiming[pin+''] = true;
+    var counter = 0;
+    var readPoller = function (pin, cb) {
+      gpio.read(pin, function (err, value) {
+        if (err) { isTiming[pin+''] = false; process.stdout.write('X'); }
+        if (value === 1) { isTiming[pin+''] = false; return cb(counter); }
+        if (counter > 150) { isTiming[pin+''] = false; return cb(Infinity); }
+        counter++;
+        setTimeout(function () {
+          return readPoller(pin, cb);
+        }, CAPACITOR_POLL_DELAY);
+      });
+    };
+
+    // discharge
+    gpio.setDirection(pin, 'out', function (err) {
+      if (err) { isTiming[pin+''] = false; process.stdout.write('X'); }
+      gpio.write(pin, 0, function (err) {
+        if (err) { isTiming[pin+''] = false; process.stdout.write('X'); }
+        setTimeout(function () {
+          gpio.setDirection(pin, 'in', function (err) {
+            if (err) { isTiming[pin+''] = false; process.stdout.write('X'); }
+            readPoller(pin, cb);
+          });
+        }, 50);
+      });
     });
   };
-
-  // discharge
-  gpio.setDirection(pin, 'out', function (err) {
-    if (err) { isTiming[pin+''] = false; process.stdout.write('X'); }
-    gpio.write(pin, 0, function (err) {
-      if (err) { isTiming[pin+''] = false; process.stdout.write('X'); }
-      setTimeout(function () {
-        gpio.setDirection(pin, 'in', function (err) {
-          if (err) { isTiming[pin+''] = false; process.stdout.write('X'); }
-          readPoller(pin, cb);
-        });
-      }, 50);
-    });
-  });
-};
+}());
 
 var colorTimer = function (pin, cb) {
   gpio.open(pin, 'out', function(err) {
@@ -72,24 +81,33 @@ var colorTimer = function (pin, cb) {
   });
 };
 
-var isRGBTiming = false;
-var isRGB = function (cb) {
-  if (isRGBTiming) return;
-  isRGBTiming = true;
-  colorTimer(redPin, function (redCount) {
-    colorTimer(greenPin, function (greenCount) {
-      colorTimer(bluePin, function (blueCount) {
-        isRGBTiming = false;
-        cb({r: redCount, g: greenCount, b: blueCount});
+var isRGB = (function () {
+  /*
+   
+   */
+
+  // lock variable so no more than one client can call this function
+  var isRGBTiming = false;
+  return function (cb) {
+    if (isRGBTiming) return;
+    isRGBTiming = true;
+    colorTimer(redPin, function (redCount) {
+      colorTimer(greenPin, function (greenCount) {
+        colorTimer(bluePin, function (blueCount) {
+          isRGBTiming = false;
+          cb({r: redCount, g: greenCount, b: blueCount});
+        });
       });
     });
-  });
-};
+  };
+}());
 
 var btw = function (val, a, b) {
   return val >= a && val <= b;
 };
 
+/*   
+ */
 var checkColors = function (cb) {
   isRGB(function (val) {
 
@@ -120,73 +138,77 @@ var checkColors = function (cb) {
   });
 };
 
-var streaks = [{}, {}, {}];
-var isColorStreak = false;
-var handleStreaks = function (val) {
-  if (!val) return;
-  var colors = Object.keys(val.colors);
-  
-  // continuous queue
-  streaks.push(val);
-  streaks.shift();
+var handleStreaks = (function () {
+  var streaks = [{}, {}, {}];
+  var isColorStreak = false;
+  return function (val) {
+    if (!val) return;
+    var colors = Object.keys(val.colors);
+    
+    // continuous queue
+    streaks.push(val);
+    streaks.shift();
 
-  if (isColorStreak && streaks[0].isNone && streaks[1].isNone && streaks[2].isNone) {
-    isColorStreak = false;
-    return 'none';
-  } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isRed'), function (a) { return !!a; }).length > 2) {
-    isColorStreak = true;
-    return 'red';
-  } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isOrange'), function (a) { return !!a; }).length > 2) {
-    isColorStreak = true;
-    return 'orange';
-  } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isYellow'), function (a) { return !!a; }).length > 2) {
-    isColorStreak = true;
-    return 'yellow';
-  } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isYellow2'), function (a) { return !!a; }).length > 2) {
-    isColorStreak = true;
-    return 'yellow2';
-  } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isPurple'), function (a) { return !!a; }).length > 2) {
-    isColorStreak = true;
-    return 'purple';
-  } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isGreen'), function (a) { return !!a; }).length > 2) {
-    isColorStreak = true;
-    return 'green';
-  } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isGreen'), function (a) { return !!a; }).length > 2) {
-    isColorStreak = true;
-    return 'green2';
-  }
-};
-
-var currentSong = null;
-var playSong = function (song) {
-  if (!song) return;
-
-  var songs = {
-    'red'     : 'AsGalinhas.mp3',
-    'orange'  : 'BarcoNegro_comp.mp3',
-    'yellow'  : 'FadoTropical_comp.mp3',
-    'yellow2' : 'Ruca.mp3',
-    'purple'  : 'MusicaDasCores_short.mp3',
-    'green'   : 'CarlosdoCarmo_comp.mp3',
-    'green2'   : 'CarlosdoCarmo_comp.mp3',
-    'none'    : null
-  };
-  if ((!song || !songs[song]) && currentSong) {
-    omx.stop();
-    console.log('pausing');
-    currentSong = null;
-  } else if (!!songs[song] && !currentSong && !program.calibrate) {
-    omx.stop();
-    omx.play('./mp3/' + songs[song]);
-    if (program.debug) {
-      setTimeout(function () {
-        omx.stop();
-      }, 2000);
+    if (isColorStreak && streaks[0].isNone && streaks[1].isNone && streaks[2].isNone) {
+      isColorStreak = false;
+      return 'none';
+    } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isRed'), function (a) { return !!a; }).length > 2) {
+      isColorStreak = true;
+      return 'red';
+    } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isOrange'), function (a) { return !!a; }).length > 2) {
+      isColorStreak = true;
+      return 'orange';
+    } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isYellow'), function (a) { return !!a; }).length > 2) {
+      isColorStreak = true;
+      return 'yellow';
+    } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isYellow2'), function (a) { return !!a; }).length > 2) {
+      isColorStreak = true;
+      return 'yellow2';
+    } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isPurple'), function (a) { return !!a; }).length > 2) {
+      isColorStreak = true;
+      return 'purple';
+    } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isGreen'), function (a) { return !!a; }).length > 2) {
+      isColorStreak = true;
+      return 'green';
+    } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isGreen'), function (a) { return !!a; }).length > 2) {
+      isColorStreak = true;
+      return 'green2';
     }
-    console.log('playing ' + songs[song]);
-    currentSong = songs[song];
-  }
-};
+  };
+}());
+
+var playSong = (function () {
+  var currentSong = null;
+  return function (song) {
+    if (!song) return;
+
+    var songs = {
+      'red'     : 'AsGalinhas.mp3',
+      'orange'  : 'BarcoNegro_comp.mp3',
+      'yellow'  : 'FadoTropical_comp.mp3',
+      'yellow2' : 'Ruca.mp3',
+      'purple'  : 'MusicaDasCores_short.mp3',
+      'green'   : 'CarlosdoCarmo_comp.mp3',
+      'green2'   : 'CarlosdoCarmo_comp.mp3',
+      'none'    : null
+    };
+    if ((!song || !songs[song]) && currentSong) {
+      omx.stop();
+      console.log('pausing');
+      currentSong = null;
+    } else if (!!songs[song] && !currentSong && !program.calibrate) {
+      omx.stop();
+      omx.play('./mp3/' + songs[song]);
+      if (program.debug) {
+        setTimeout(function () {
+          omx.stop();
+        }, 2000);
+      }
+      console.log('playing ' + songs[song]);
+      currentSong = songs[song];
+    }
+  };
+}());
 
 // TODO
 // spawn('amixer', ['set', 'PCM', '--', '-0']);

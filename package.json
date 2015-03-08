@@ -8,6 +8,7 @@
       "colors": "1.0.3",
       "underscore": "1.8.2",
       "omx-manager": "0.0.3",
-    	"omx-controller":"0.0.2"
+      "omx-controller":"0.0.2",
+      "commander": "2.6.0"
   }
 }
