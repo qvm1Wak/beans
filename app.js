@@ -20,7 +20,7 @@ var greenOn = 0;
 var blueOn = 0;
 var redPin = 11;
 var greenPin = 13;
-var yellowPin = 15;
+var bluePin = 15;
 
 var photoPin = 12;
 
@@ -72,15 +72,15 @@ var colorTimer = function (pin, cb) {
   });
 };
 
-var isRGYTiming = false;
-var isRGY = function (cb) {
-  if (isRGYTiming) return;
-  isRGYTiming = true;
+var isRGBTiming = false;
+var isRGB = function (cb) {
+  if (isRGBTiming) return;
+  isRGBTiming = true;
   colorTimer(redPin, function (redCount) {
     colorTimer(greenPin, function (greenCount) {
-      colorTimer(yellowPin, function (yellowCount) {
-        isRGYTiming = false;
-        cb({r: redCount, g: greenCount, y: yellowCount});
+      colorTimer(bluePin, function (blueCount) {
+        isRGBTiming = false;
+        cb({r: redCount, g: greenCount, b: blueCount});
       });
     });
   });
@@ -91,23 +91,20 @@ var btw = function (val, a, b) {
 };
 
 var checkColors = function (cb) {
-  isRGY(function (val) {
-    /* the detector is better and finding shades of yellow and red, 
-     it is very bad at finding shades of green or blue,
-     but it can tell the difference between blue and red or yellow.
-     */
+  isRGB(function (val) {
+
     var output = {
-      rgy: val,
-      rgyString: '(' + val.r + ' ' + val.g  + ' ' + val.y + ')',
+      rgb: val,
+      rgbString: '(' + val.r + ' ' + val.g  + ' ' + val.b + ')',
       colors: {},
-      isNone: btw(val.r, 6, 10) && btw(val.y, 6, 10),
-      isRed: btw(val.r, 18, 26) && btw(val.g, 24, 39) && btw(val.y, 20, 26),
-      isOrange: btw(val.r, 12, 17) && btw(val.g, 19, 25) && btw(val.y, 15, 18),
-      isYellow: btw(val.r, 10, 16) && btw(val.g, 17, 20) && btw(val.y, 11, 16),
-      //isYellow2: btw(val.r, 5, 15) && btw(val.g, 17, 20) && btw(val.y, 5, 14),
-      isPurple: btw(val.r, 32, 42) && btw(val.g, 35, 49) && btw(val.y, 17, 22),
-      isGreen: btw(val.r, 19, 21) && btw(val.g, 21, 23) && btw(val.y, 12, 15),
-      isGreen2: btw(val.r, 29, 31) && btw(val.g, 34, 39) && btw(val.y, 18, 20)
+      isNone: btw(val.r, 6, 10) && btw(val.b, 6, 10),
+      isRed: btw(val.r, 18, 26) && btw(val.g, 24, 39) && btw(val.b, 20, 26),
+      isOrange: btw(val.r, 12, 17) && btw(val.g, 19, 25) && btw(val.b, 15, 18),
+      isYellow: btw(val.r, 10, 16) && btw(val.g, 17, 20) && btw(val.b, 11, 16),
+      //isYellow2: btw(val.r, 5, 15) && btw(val.g, 17, 20) && btw(val.b, 5, 14),
+      isPurple: btw(val.r, 32, 42) && btw(val.g, 35, 49) && btw(val.b, 17, 22),
+      isGreen: btw(val.r, 19, 21) && btw(val.g, 21, 23) && btw(val.b, 12, 15),
+      isGreen2: btw(val.r, 29, 31) && btw(val.g, 34, 39) && btw(val.b, 18, 20)
 
     };
     if (output.isRed) { output.colors.red = 1; }
@@ -201,15 +198,15 @@ checkColors(function (val) {
     if (val.isNone) {
       process.stdout.write('.');
     } else if (colors.length) {
-      process.stdout.write(' ' + val.rgyString + ' ');
+      process.stdout.write(' ' + val.rgbString + ' ');
       process.stdout.write(detected);
     } else {
-      process.stdout.write(' ' + val.rgyString + ')');
+      process.stdout.write(' ' + val.rgbString + ')');
     }
   }
 
   if (program.calibrate) {
-    console.log(val.rgyString + ' ' + detected);
+    console.log(val.rgbString + ' ' + detected);
   }
 
   // detect streaks
@@ -230,7 +227,7 @@ process.stdin.resume();
 process.on('SIGINT', function () {
   gpio.close(redPin);
   gpio.close(greenPin);
-  gpio.close(yellowPin);
+  gpio.close(bluePin);
   gpio.close(12);
   process.exit(2);
 });
