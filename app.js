@@ -64,14 +64,14 @@ var pinTimer = (function () {
     var readPoller = function (pin, cb) {
       logger.log('debug', '1');
       gpio.read(pin, function (err, value) {
-        logger.log('debug', '2');
+        //logger.log('debug', '2');
         if (err) { isTiming[pin+''] = false; logger.log('debug', 'error'); }
         if (value === 1) { isTiming[pin+''] = false; return cb(counter); }
-        if (counter > 200) { isTiming[pin+''] = false; return cb(Infinity); }
+        if (counter > 150) { isTiming[pin+''] = false; return cb(Infinity); }
         counter++;
-        logger.log('debug', '3');
+        //logger.log('debug', '3');
         setTimeout(function () {
-          logger.log('debug', '4');
+          //logger.log('debug', '4');
           return readPoller(pin, cb);
         }, CAPACITOR_POLL_DELAY);
       });
@@ -79,19 +79,19 @@ var pinTimer = (function () {
 
     // discharge
     gpio.setDirection(pin, 'out', function (err) {
-      logger.log('debug', '5');          
+      //logger.log('debug', '5');          
       if (err) { isTiming[pin+''] = false;  logger.log('debug', 'error'); }
-      logger.log('debug', '6');
+      //logger.log('debug', '6');
       gpio.write(pin, 0, function (err) {
-        logger.log('debug', '7');
+        //logger.log('debug', '7');
         if (err) { isTiming[pin+''] = false;  logger.log('debug', 'error'); }
-        logger.log('debug', '8');
+        //logger.log('debug', '8');
         setTimeout(function () {
-          logger.log('debug', '9');
+          //logger.log('debug', '9');
           gpio.setDirection(pin, 'in', function (err) {
-            logger.log('debug', '10');
+            //logger.log('debug', '10');
             if (err) { isTiming[pin+''] = false;  logger.log('debug', 'error'); }
-            logger.log('debug', '11');
+            //logger.log('debug', '11');
             readPoller(pin, cb);
           });
         }, 50);
@@ -103,17 +103,17 @@ var pinTimer = (function () {
 var colorTimer = function (pin, cb) {
   logger.log('debug', '12');
   gpio.open(pin, 'out', function(err) {
-    logger.log('debug', '13');
+    //logger.log('debug', '13');
     if (err) { logger.log('debug', 'error'); }
-    logger.log('debug', '14');
+    //logger.log('debug', '14');
     gpio.write(pin, 1, function(err) {
-      logger.log('debug', '15');
+      //logger.log('debug', '15');
       if (err) { logger.log('debug', 'error'); }
-      logger.log('debug', '16');
+      //logger.log('debug', '16');
       pinTimer(photoPin, function (count) {
-        logger.log('debug', '17');
+        //logger.log('debug', '17');
         gpio.close(pin, function () {
-          logger.log('debug', '18');
+          //logger.log('debug', '18');
           cb(count);
         });
       });
@@ -129,15 +129,15 @@ var isRGB = (function () {
   // lock variable so no more than one client can call this function
   var isRGBTiming = false;
   return function (cb) {
-    logger.log('debug', '19');
+    //logger.log('debug', '19');
     if (isRGBTiming) return;
     isRGBTiming = true;
     colorTimer(redPin, function (redCount) {
-      logger.log('debug', '20');
+      //logger.log('debug', '20');
       colorTimer(greenPin, function (greenCount) {
-        logger.log('debug', '21');
+        //logger.log('debug', '21');
         colorTimer(bluePin, function (blueCount) {
-          logger.log('debug', '22');
+          //logger.log('debug', '22');
           isRGBTiming = false;
           cb({r: redCount, g: greenCount, b: blueCount});
         });
@@ -160,13 +160,13 @@ var checkColors = function (cb) {
       rgbString: '(' + val.r + ' ' + val.g  + ' ' + val.b + ')',
       colors: {},
       isNone: btw(val.r, 1, 15) && btw(val.g, 1, 18) && btw(val.b, 1, 12),
-      isRed: btw(val.r, 11, 17) && btw(val.g, 19, 24) && btw(val.b, 10, 13),
-      isOrange: btw(val.r, 17, 21) && btw(val.g, 42, 63) && btw(val.b, 13, 15),
-      isYellow: btw(val.r, 16, 20) && btw(val.g, 32, 41) && btw(val.b, 12, 13),
+      isRed: btw(val.r, 15, Infinity) && btw(val.g, 15, Infinity) && btw(val.b, 10, 12),
+      isOrange: btw(val.r, 27, 30) && btw(val.g, 38, 40) && btw(val.b, 8, 12),
+      //isYellow: btw(val.r, 16, 20) && btw(val.g, 32, 41) && btw(val.b, 12, 13),
       //isYellow2: btw(val.r, 5, 15) && btw(val.g, 17, 20) && btw(val.b, 5, 14),
-      isPurple: btw(val.r, 23, 42) && btw(val.g, 44, 70) && btw(val.b, 11, 16),
-      isGreen: btw(val.r, 19, 22) && btw(val.g, 31, 38) && btw(val.b, 12, 15),
-      isGreen2: btw(val.r, 29, 31) && btw(val.g, 34, 39) && btw(val.b, 18, 20)
+      isPurple: btw(val.r, 28, 34) && btw(val.g, 46, 50) && btw(val.b, 10, 11),
+      isGreen: btw(val.r, 26, 28) && btw(val.g, 32, 37) && btw(val.b, 8, 12),
+      //isGreen2: btw(val.r, 29, 31) && btw(val.g, 34, 39) && btw(val.b, 18, 20)
       // isNone: btw(val.r, 6, 10) && btw(val.b, 6, 10),
       // isRed: btw(val.r, 18, 26) && btw(val.g, 24, 39) && btw(val.b, 20, 26),
       // isOrange: btw(val.r, 12, 17) && btw(val.g, 19, 25) && btw(val.b, 15, 18),
@@ -191,64 +191,62 @@ var checkColors = function (cb) {
 };
 
 var handleStreaks = (function () {
-  var streaks = [{}, {}, {}];
-  var isColorStreak = false;
+  var queue = [];
+  var streaks = {none: 0, red: 0, orange: 0, yellow: 0, yellow2: 0, purple: 0, green: 0, green2: 0};
+  var numItems = 0;
   return function (val) {
-    if (!val) return;
+    if (!val) return null;
     var colors = Object.keys(val.colors);
-    
-    // continuous queue
-    streaks.push(val);
-    streaks.shift();
 
-    if (isColorStreak && streaks[0].isNone && streaks[1].isNone && streaks[2].isNone) {
-      isColorStreak = false;
-      return 'none';
-    } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isRed'), function (a) { return !!a; }).length > 2) {
-      isColorStreak = true;
-      return 'red';
-    } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isOrange'), function (a) { return !!a; }).length > 2) {
-      isColorStreak = true;
-      return 'orange';
-    } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isYellow'), function (a) { return !!a; }).length > 2) {
-      isColorStreak = true;
-      return 'yellow';
-    } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isYellow2'), function (a) { return !!a; }).length > 2) {
-      isColorStreak = true;
-      return 'yellow2';
-    } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isPurple'), function (a) { return !!a; }).length > 2) {
-      isColorStreak = true;
-      return 'purple';
-    } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isGreen'), function (a) { return !!a; }).length > 2) {
-      isColorStreak = true;
-      return 'green';
-    } else if (!isColorStreak && _.filter(_.pluck(streaks, 'isGreen'), function (a) { return !!a; }).length > 2) {
-      isColorStreak = true;
-      return 'green2';
+    if (numItems < 6) { numItems++;};
+    queue.push(val);
+    if(val.isNone) { streaks['none']++; }
+    if(val.isRed) { streaks['red']++; }
+    if(val.isOrange) { streaks['orange']++; }
+    if(val.isYellow) { streaks['yellow']++; }
+    if(val.isYellow2) { streaks['yellow2']++; }
+    if(val.isPurple) { streaks['purple']++; }
+    if(val.isGreen) { streaks['green']++; }
+    if(val.isGreen2) { streaks['green2']++; }
+    var doneVal;
+    if (numItems === 6) {
+      doneVal = queue.shift();
+      if(doneVal.isNone) { streaks['none']--; }
+      if(doneVal.isRed) { streaks['red']--; }
+      if(doneVal.isOrange) { streaks['orange']--; }
+      if(doneVal.isYellow) { streaks['yellow']--; }
+      if(doneVal.isYellow2) { streaks['yellow2']--; }
+      if(doneVal.isPurple) { streaks['purple']--; }
+      if(doneVal.isGreen) { streaks['green']--; }
+      if(doneVal.isGreen2) { streaks['green2']--; }
     }
+
+    var selected = _.reduce(_.keys(streaks), function (selected, item) {
+      return streaks[item] > 2 ? item : selected;
+    }, 'none');
+    return selected;
   };
 }());
+
+var songs = {
+ 'orange'  : 'AsGalinhas.mp3',
+ 'red'     : 'FadoTropical_comp.mp3',
+ 'yellow'  : 'BarcoNegro_comp.mp3',
+ 'yellow2' : 'Ruca.mp3',
+ 'purple'  : 'CarlosdoCarmo_comp.mp3',
+ 'green'   : 'MusicaDasCores_short.mp3',
+ 'green2'  : 'CarlosdoCarmo_comp.mp3',
+ 'none'    : null
+};
 
 var playSong = (function () {
   var currentSong = null;
   return function (song) {
-    if (!song) return;
-
-    var songs = {
-      'red'     : 'AsGalinhas.mp3',
-      'orange'  : 'BarcoNegro_comp.mp3',
-      'yellow'  : 'FadoTropical_comp.mp3',
-      'yellow2' : 'Ruca.mp3',
-      'purple'  : 'MusicaDasCores_short.mp3',
-      'green'   : 'CarlosdoCarmo_comp.mp3',
-      'green2'   : 'CarlosdoCarmo_comp.mp3',
-      'none'    : null
-    };
     if ((!song || !songs[song]) && currentSong) {
       omx.stop();
       logger.log('info', 'pausing');
       currentSong = null;
-    } else if (!!songs[song] && !currentSong && !program.calibrate) {
+    } else if (!!songs[song] && !program.calibrate) {
       omx.stop();
       omx.play('./mp3/' + songs[song]);
       if (program.shortclip) {
@@ -272,8 +270,7 @@ checkColors(function (val) {
     if (val.isNone) {
       logger.log('info', '.');
     } else if (colors.length) {
-      logger.log('info', ' ' + val.rgbString + ')'); // process.stdout.write
-      logger.log('info', detected);
+      logger.log('info', ' ' + val.rgbString + ') ' + detected); // process.stdout.write
     } else {
       logger.log('info', ' ' + val.rgbString + ')');
     }
@@ -286,9 +283,9 @@ checkColors(function (val) {
 
   // detect streaks
   var s = handleStreaks(val);
-  if (program.debug) {
-    logger.log('info', s ? s : '');
-  }
+  // if (program.debug) {
+  //   logger.log('info', 'streak' + s);
+  // }
   playSong(s);
 });
 
