@@ -18,9 +18,9 @@ node app.js
 
 At this point, lights should flash red, green, and blue in rapid succession and values should display on the terminal.
 
-'''-c''' - calibration mode -- Calibrate the device for given lighting conditions by placing objects and reading the RGB values detected. Those values can then be entered into the ```app.js``` script. The calibration output shows three columns: RGB values detected, rgb 10% and 90% quantiles detected in the last 10 readings, and size of each of the ranges. This mode does not play songs or detect streaks of colors.  
-'''-d''' - debug mode -- Shows RGB information in the console during normal operation. The uncovered state shows as '.'.  
-'''-s''' - shortclip mode -- Don't play the whole song, just a 2 second clip. Useful if the songs become annoying.  
+**-c** - calibration mode -- Calibrate the device for given lighting conditions by placing objects and reading the RGB values detected. Those values can then be entered into the ```app.js``` script. The calibration output shows three columns: RGB values detected, rgb 10% and 90% quantiles detected in the last 10 readings, and size of each of the ranges. This mode does not play songs or detect streaks of colors.  
+**-d** - debug mode -- Shows RGB information in the console during normal operation. The uncovered state shows as '.'.  
+**-s** - shortclip mode -- Don't play the whole song, just a 2 second clip. Useful if the songs become annoying.  
 
 
 This was tested on the latest Raspbian on Raspberry Pi 2. Raspberry Pi 2 did not work out of the box with node.js's pi-gpio library, so a patched one was required (the pi-gpio.js file). The project also used a patched version of quick2wire-gpio-admin (not included, compiled from source).
