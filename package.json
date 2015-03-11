@@ -10,6 +10,7 @@
       "omx-manager": "0.0.3",
       "omx-controller":"0.0.2",
       "commander": "2.6.0",
-      "winston": "0.8.3"
+      "winston": "0.8.3",
+      "summary": "0.3.2"
   }
 }

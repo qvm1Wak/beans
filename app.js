@@ -116,7 +116,6 @@ var isRGB = (function () {
     if (isRGBTiming) return;
     isRGBTiming = true;
     colorTimer(redPin, function (redCount) {
-      //logger.log('debug', '20');
       colorTimer(greenPin, function (greenCount) {
         colorTimer(bluePin, function (blueCount) {
           isRGBTiming = false;
@@ -242,7 +241,6 @@ var playSong = (function () {
 
 // TODO
 // spawn('amixer', ['set', 'PCM', '--', '-0']);
-
 var summaryWindowSize = 10;
 checkColors(function (val) {
   var colors = Object.keys(val.colors);
@@ -284,9 +282,9 @@ checkColors(function (val) {
     if (val.isNone) {
       logger.log('info', '.');
     } else if (colors.length) {
-      logger.log('info', ' ' + val.rgbString + ') ' + detected); // process.stdout.write
+      logger.log('info', ' ' + val.rgbString + ') ' + ranges + ' ' + detected); // process.stdout.write
     } else {
-      logger.log('info', ' ' + val.rgbString + ')');
+      logger.log('info', ' ' + val.rgbString + ')' + ranges + ' ');
     }
   }
 

@@ -4,7 +4,7 @@ var fs = require("fs"),
 	exec = require("child_process").exec;
 
 var gpioAdmin = "gpio-admin",
-	sysFsPath = "/sys/devices/soc/3f200000.gpio/gpio";
+	sysFsPath = "/sys/class/gpio";
 
 var rev = fs.readFileSync("/proc/cpuinfo").toString().split("\n").filter(function(line) {
 	return line.indexOf("Revision") == 0;
@@ -57,7 +57,8 @@ function noop() {}
 
 function handleExecResponse(method, pinNumber, callback) {
 	return function(err, stdout, stderr) {
-		if (err) {
+          // console.log('gpio exc', stderr, err);
+	  if (err) {
 			console.error("Error when trying to", method, "pin", pinNumber);
 			console.error(stderr);
 			callback(err);
@@ -119,7 +120,7 @@ var gpio = {
 
 	open: function(pinNumber, options, callback) {
 		pinNumber = sanitizePinNumber(pinNumber);
-
+          // console.log('gpio o', pinNumber);
 		if (!callback && typeof options === "function") {
 			callback = options;
 			options = "out";
@@ -129,7 +130,7 @@ var gpio = {
 
 		exec(gpioAdmin + " export " + pinMapping[pinNumber] + " " + options.pull, handleExecResponse("open", pinNumber, function(err) {
 			if (err) return (callback || noop)(err);
-
+                  //console.log('gpio od', pinNumber, options.direction, err);
 			gpio.setDirection(pinNumber, options.direction, callback);
 		}));
 	},
@@ -137,6 +138,7 @@ var gpio = {
 	setDirection: function(pinNumber, direction, callback) {
 		pinNumber = sanitizePinNumber(pinNumber);
 		direction = sanitizeDirection(direction);
+                      //console.log('gpio d', pinNumber);
 
 		fs.writeFile(sysFsPath + "/gpio" + pinMapping[pinNumber] + "/direction", direction, (callback || noop));
 	},
@@ -152,9 +154,10 @@ var gpio = {
 	},
 
 	close: function(pinNumber, callback) {
-		pinNumber = sanitizePinNumber(pinNumber);
+	  pinNumber = sanitizePinNumber(pinNumber);
+                    //console.log('gpio c', pinNumber);
 
-		exec(gpioAdmin + " unexport " + pinMapping[pinNumber], handleExecResponse("close", pinNumber, callback || noop));
+	  exec(gpioAdmin + " unexport " + pinMapping[pinNumber], handleExecResponse("close", pinNumber, (callback || noop)));
 	},
 
 	read: function(pinNumber, callback) {
