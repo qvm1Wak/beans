@@ -144,13 +144,13 @@ var checkColors = function (cb) {
       rgb: val,
       rgbString: '(' + val.r + ' ' + val.g  + ' ' + val.b + ')',
       colors: {},
-      isNone: btw(val.r, 1, 15) && btw(val.g, 1, 18) && btw(val.b, 1, 12),
-      isRed: btw(val.r, 15, Infinity) && btw(val.g, 15, Infinity) && btw(val.b, 10, 12),
-      isOrange: btw(val.r, 27, 30) && btw(val.g, 38, 40) && btw(val.b, 8, 12),
-      //isYellow: btw(val.r, 16, 20) && btw(val.g, 32, 41) && btw(val.b, 12, 13),
+      isNone: btw(val.r, 1, 5) && btw(val.g, 1, 5) && btw(val.b, 1, 5),
+      isRed: btw(val.r, 5, 7) && btw(val.g, 5, 8) && btw(val.b, 5, 8),
+      isOrange: btw(val.r, 11, 15) && btw(val.g, 26, 35) && btw(val.b, 25, 35),
+      isYellow: btw(val.r, 10, 15) && btw(val.g, 25, 32) && btw(val.b, 33, 45),
       //isYellow2: btw(val.r, 5, 15) && btw(val.g, 17, 20) && btw(val.b, 5, 14),
-      isPurple: btw(val.r, 28, 34) && btw(val.g, 46, 50) && btw(val.b, 10, 11),
-      isGreen: btw(val.r, 26, 28) && btw(val.g, 32, 37) && btw(val.b, 8, 12)
+      isPurple: btw(val.r, 20, 24) && btw(val.g, 34, Infinity) && btw(val.b, 38, 96),
+      isGreen: btw(val.r, 8, 13) && btw(val.g, 11, 16) && btw(val.b, 12, 14)
     };
     if (output.isRed) { output.colors.red = 1; }
     if (output.isOrange) { output.colors.orange = 1; }
@@ -171,7 +171,8 @@ var checkColors = function (cb) {
 
 var handleStreaks = (function () {
   var queue = [];
-  var streaks = {none: 0, red: 0, orange: 0, yellow: 0, yellow2: 0, purple: 0, green: 0, green2: 0};
+  var streaks = {red: 0, orange: 0, yellow: 0, yellow2: 0, purple: 0, green: 0, green2: 0};
+  var noneStreak = 0;
   var numItems = 0;
   return function (val) {
     if (!val) return null;
@@ -179,7 +180,7 @@ var handleStreaks = (function () {
 
     if (numItems < 6) { numItems++;};
     queue.push(val);
-    if(val.isNone) { streaks['none']++; }
+    if(val.isNone) { noneStreak++; }
     if(val.isRed) { streaks['red']++; }
     if(val.isOrange) { streaks['orange']++; }
     if(val.isYellow) { streaks['yellow']++; }
@@ -190,7 +191,7 @@ var handleStreaks = (function () {
     var doneVal;
     if (numItems === 6) {
       doneVal = queue.shift();
-      if(doneVal.isNone) { streaks['none']--; }
+      if(doneVal.isNone) { noneStreak--; }
       if(doneVal.isRed) { streaks['red']--; }
       if(doneVal.isOrange) { streaks['orange']--; }
       if(doneVal.isYellow) { streaks['yellow']--; }
@@ -202,7 +203,8 @@ var handleStreaks = (function () {
 
     var selected = _.reduce(_.keys(streaks), function (selected, item) {
       return streaks[item] > 2 ? item : selected;
-    }, 'none');
+    }, null);
+    if (noneStreak >= 4) selected = 'none';
     return selected;
   };
 }());
@@ -225,7 +227,7 @@ var playSong = (function () {
       omx.stop();
       logger.log('info', 'pausing');
       currentSong = null;
-    } else if (!!songs[song] && !program.calibrate) {
+    } else if (!!songs[song] && !currentSong && !program.calibrate) {
       omx.stop();
       omx.play('./mp3/' + songs[song]);
       if (program.shortclip) {
@@ -242,22 +244,23 @@ var playSong = (function () {
 // TODO
 // spawn('amixer', ['set', 'PCM', '--', '-0']);
 var summaryWindowSize = 10;
+
+var rs = [];
+var rSummary;
+var rLow;
+var rHigh;
+var gs = [];
+var gSummary;
+var gLow;
+var gHigh;
+var bs = [];
+var bSummary;
+var bLow;
+var bHigh;
+
 checkColors(function (val) {
   var colors = Object.keys(val.colors);
   var detected = colors.join(', ');
-
-  var rs = [];
-  var rSummary;
-  var rLow;
-  var rHigh;
-  var gs = [];
-  var gSummary;
-  var gLow;
-  var gHigh;
-  var bs = [];
-  var bSummary;
-  var bLow;
-  var bHigh;
 
   rs.unshift(val.rgb.r);
   rs = rs.slice(0, summaryWindowSize);
@@ -298,7 +301,7 @@ checkColors(function (val) {
   // if (program.debug) {
   //   logger.log('info', 'streak' + s);
   // }
-  playSong(s);
+  if (s) playSong(s);
 });
 
 gpio.open(photoPin, 'in');
