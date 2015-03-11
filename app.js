@@ -208,13 +208,13 @@ var handleStreaks = (function () {
 }());
 
 var songs = {
- 'orange'  : 'AsGalinhas.mp3',
- 'red'     : 'FadoTropical_comp.mp3',
- 'yellow'  : 'BarcoNegro_comp.mp3',
- 'yellow2' : 'Ruca.mp3',
- 'purple'  : 'CarlosdoCarmo_comp.mp3',
- 'green'   : 'MusicaDasCores_short.mp3',
- 'green2'  : 'CarlosdoCarmo_comp.mp3',
+ 'orange'  : '1_DAMA_AsVezes.mp3',
+ 'red'     : '1_XutosEPontapes_NaoSouUnico.mp3',
+ 'yellow'  : '1_Pharrell_Happy.mp3',
+ 'yellow2' : '1_Badoxa_Controla.mp3',
+ 'purple'  : '1_Avicii_AddictedToYou.mp3',
+ 'green'   : '1_ArcticMonkeys_DoIWannaKnow.mp3',
+ 'green2'  : '1_AnaMoura_Desfado.mp3',
  'none'    : null
 };
 
