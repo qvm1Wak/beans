@@ -131,8 +131,6 @@ var btw = function (val, a, b) {
   return val >= a && val <= b;
 };
 
-/*   
- */
 var checkColors = function (cb) {
   isRGB(function (val) {
     var nextIteration = 0;
@@ -246,21 +244,22 @@ var playSong = (function () {
 // spawn('amixer', ['set', 'PCM', '--', '-0']);
 
 var summaryWindowSize = 10;
-var rs = [];
-var rSummary;
-var rLow;
-var rHigh;
-var gs = [];
-var gSummary;
-var gLow;
-var gHigh;
-var bs = [];
-var bSummary;
-var bLow;
-var bHigh;
 checkColors(function (val) {
   var colors = Object.keys(val.colors);
   var detected = colors.join(', ');
+
+  var rs = [];
+  var rSummary;
+  var rLow;
+  var rHigh;
+  var gs = [];
+  var gSummary;
+  var gLow;
+  var gHigh;
+  var bs = [];
+  var bSummary;
+  var bLow;
+  var bHigh;
 
   rs.unshift(val.rgb.r);
   rs = rs.slice(0, summaryWindowSize);
@@ -285,9 +284,9 @@ checkColors(function (val) {
     if (val.isNone) {
       logger.log('info', '.');
     } else if (colors.length) {
-      logger.log('info', ' ' + val.rgbString + ') ' + ranges + ' ' + detected); // process.stdout.write
+      logger.log('info', ' ' + val.rgbString + ') ' + detected); // process.stdout.write
     } else {
-      logger.log('info', ' ' + val.rgbString + ')' + ranges + ' ');
+      logger.log('info', ' ' + val.rgbString + ')');
     }
   }
 
