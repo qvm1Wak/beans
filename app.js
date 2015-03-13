@@ -144,7 +144,7 @@ var checkColors = function (cb) {
       rgb: val,
       rgbString: '(' + val.r + ' ' + val.g  + ' ' + val.b + ')',
       colors: {},
-      isNone: btw(val.r, 1, 5) && btw(val.g, 1, 5) && btw(val.b, 1, 5),
+      isNone: btw(val.r, 0, 5) && btw(val.g, 0, 5) && btw(val.b, 0, 5),
       isRed: btw(val.r, 5, 7) && btw(val.g, 5, 8) && btw(val.b, 5, 8),
       isOrange: btw(val.r, 11, 15) && btw(val.g, 26, 35) && btw(val.b, 25, 35),
       isYellow: btw(val.r, 10, 15) && btw(val.g, 25, 32) && btw(val.b, 33, 45),
@@ -204,7 +204,7 @@ var handleStreaks = (function () {
     var selected = _.reduce(_.keys(streaks), function (selected, item) {
       return streaks[item] > 2 ? item : selected;
     }, null);
-    if (noneStreak >= 4) selected = 'none';
+    if (noneStreak >= 3) selected = 'none';
     return selected;
   };
 }());
